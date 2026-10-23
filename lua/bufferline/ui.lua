@@ -19,7 +19,6 @@ local M = {}
 
 local api = vim.api
 
-local sep_names = constants.sep_names
 local sep_chars = constants.sep_chars
 -- string.len counts number of bytes and so the unicode icons are counted
 -- larger than their display width. So we use nvim's strwidth
@@ -239,12 +238,12 @@ local function get_icon(buffer, hl_defs)
   return { text = icon, highlight = icon_hl, attr = { text = "%*" } }
 end
 
----Determine if the separator style is one of the slant options
+---Determine if the separator style draws a separator on both sides of every
+---element. These styles always render a left and a right separator and use
+---state dependent separator highlights.
 ---@param style string
 ---@return boolean
-local function is_slant(style)
-  return vim.tbl_contains({ sep_names.slant, sep_names.padded_slant, sep_names.slope, sep_names.padded_slope }, style)
-end
+local function is_two_sided(style) return constants.two_sided_sep_styles[style] == true end
 
 --- "▍" "░"
 --- Reference: https://en.wikipedia.org/wiki/Block_Elements
@@ -254,7 +253,7 @@ local function get_separator(focused, style)
   if type(style) == "table" then return focused and style[1] or style[2] end
   ---@diagnostic disable-next-line: undefined-field
   local chars = sep_chars[style] or sep_chars.thin
-  if is_slant(style) then return chars[1], chars[2] end
+  if is_two_sided(style) then return chars[1], chars[2] end
   return focused and chars[1] or chars[2]
 end
 
@@ -284,7 +283,11 @@ local function add_indicator(context)
   local style = options.separator_style
   local symbol, highlight = padding, nil
 
-  if is_slant(style) then return { text = symbol, highlight = highlight } end
+  -- Styles which draw a separator on both sides of every element already have
+  -- a separator surrounding the indicator, so no icon is rendered. The padding
+  -- still has to use the highlight of the element itself, otherwise it would
+  -- inherit the separator's highlight and break the shape of the element.
+  if is_two_sided(style) then return { text = symbol, highlight = curr_hl.buffer } end
 
   local is_current = element:current()
 
@@ -341,7 +344,7 @@ local function add_separators(context)
   local style = options.separator_style
   local focused = context.tab:current() or context.tab:visible()
   local right_sep, left_sep = get_separator(focused, style)
-  local sep_hl = is_slant(style) and context.current_highlights.separator or hl.separator.hl_group
+  local sep_hl = is_two_sided(style) and context.current_highlights.separator or hl.separator.hl_group
 
   local left_separator = left_sep and { text = left_sep, highlight = sep_hl } or nil
   local right_separator = { text = right_sep, highlight = sep_hl }
@@ -392,10 +395,11 @@ local function create_renderer(left_separator, right_separator, component)
   --- @param next_item bufferline.Component
   --- @return string
   return function(next_item)
-    -- if using the non-slanted tab style then we must check if the component is at the end of
-    -- of a section e.g. the end of a group and if so it should not be wrapped with separators
-    -- as it can use those of the next item
-    if not is_slant(config.options.separator_style) and next_item and next_item:is_end() then return component end
+    -- if using a style which does not have a separator on both sides then we
+    -- must check if the component is at the end of a section e.g. the end of a
+    -- group and if so it should not be wrapped with separators as it can use
+    -- those of the next item
+    if not is_two_sided(config.options.separator_style) and next_item and next_item:is_end() then return component end
 
     if left_separator then
       table.insert(component, 1, left_separator)

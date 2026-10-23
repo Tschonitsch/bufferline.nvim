@@ -83,6 +83,7 @@ describe("Bufferline tests:", function()
       "       a.txt       ▕       b.txt       ▕▎      c.txt       ",
       "        a.txt       ▕        b.txt       ▕▎       c.txt       ",
       "       a.txt              b.txt              c.txt       ",
+      "       a.txt              b.txt              c.txt       ",
     }
     it("should add correct padding if close icons are present", function()
       bufferline.setup({ options = { get_element_icon = function() return "" end } })
@@ -124,6 +125,45 @@ describe("Bufferline tests:", function()
       assert.is_truthy(tabline)
       local snapshot = utils.tabline_from_components(components)
       assert.is_equal(snapshot, snapshots[3])
+    end)
+
+    it("should show the correct rounded separators", function()
+      bufferline.setup({
+        options = {
+          get_element_icon = function() return "" end,
+          separator_style = "rounded",
+        },
+      })
+      vim.cmd("file! a.txt")
+      vim.cmd("edit b.txt")
+      vim.cmd("edit c.txt")
+      local tabline, components = nvim_bufferline()
+      assert.is_truthy(tabline)
+      local snapshot = utils.tabline_from_components(components)
+      assert.is_equal(snapshot, snapshots[4])
+    end)
+
+    it("should not render the indicator padding with the separator highlight", function()
+      bufferline.setup({
+        options = {
+          get_element_icon = function() return "" end,
+          separator_style = "rounded",
+        },
+      })
+      vim.cmd("file! a.txt")
+      vim.cmd("edit b.txt")
+      local tabline = nvim_bufferline()
+      assert.is_truthy(tabline)
+      -- remove the click handlers so that only the highlights are left
+      tabline = tabline:gsub("%%[%d]*@[^@]*@", "")
+      for group, text in tabline:gmatch("%%#([%w_]+)#([^%%]*)") do
+        if group:match("Separator") then
+          -- the separator may only contain the cap glyph itself, the padding
+          -- which follows it has to use the highlight of the element, otherwise
+          -- it would break the shape of the element
+          assert.is_nil(text:find(" "))
+        end
+      end
     end)
 
     it("should show a default icon if specified", function()

@@ -770,6 +770,29 @@ local function set_group_highlights(hls)
   end
 end
 
+---Adjust the separator colours for the rounded style so that every element is
+---rendered as a rounded pill. For this to work the foreground of a separator
+---has to match the background of the element it belongs to and its background
+---has to match the fill, otherwise the caps are not seamless.
+---@param hls bufferline.Highlights
+---@param explicit bufferline.Highlights? the highlights explicitly set by the user
+local function adjust_rounded_separators(hls, explicit)
+  ---@param name string
+  ---@param element string the highlight group of the element the separator belongs to
+  local function set(name, element)
+    if explicit and explicit[name] then return end
+    local hl, source, fill = hls[name], hls[element], hls.fill
+    if not hl or not source or not source.bg or not fill or not fill.bg then return end
+    hls[name] = vim.tbl_extend("force", hl, { fg = source.bg, bg = fill.bg })
+  end
+
+  set("separator", "background")
+  set("separator_visible", "buffer_visible")
+  set("separator_selected", "buffer_selected")
+  set("tab_separator", "tab")
+  set("tab_separator_selected", "tab_selected")
+end
+
 --- Merge user config with defaults
 --- @param quiet boolean? whether or not to validate the configuration
 --- @return bufferline.Config
@@ -778,6 +801,7 @@ function M.apply(quiet)
   local resolved = config:resolve(defaults)
   if not quiet then config:validate(defaults, resolved) end
   config:merge(defaults)
+  if config.options.separator_style == "rounded" then adjust_rounded_separators(config.highlights, resolved) end
   set_highlight_names(config.highlights)
   set_group_highlights(config.highlights)
   return config

@@ -156,7 +156,7 @@ The available configuration are:
             move_wraps_at_ends = false, -- whether or not the move command "wraps" at the first or last position
             -- can also be a table containing 2 custom separators
             -- [focused and unfocused]. eg: { '|', '|' }
-            separator_style = "slant" | "slope" | "thick" | "thin" | { 'any', 'any' },
+            separator_style = "slant" | "slope" | "thick" | "thin" | "rounded" | { 'any', 'any' },
             enforce_regular_tabs = false | true,
             always_show_bufferline = true | false,
             auto_toggle_bufferline = true | false,
@@ -211,9 +211,20 @@ You can change the appearance of the bufferline separators by setting the
   If `slope` does not render correctly for you try padded this instead.
 * `thick` - Increase the thickness of the separator characters
 * `thin` - (default) Use thin separator characters
+* `rounded` - Use rounded separators so that every buffer is rendered as a
+  rounded pill. This requires a patched font with support for the powerline
+  glyphs e.g. a Nerd Font. The separator colours are derived automatically so
+  that the caps blend in with the buffer they belong to, if you define the
+  `separator`, `separator_visible` or `separator_selected` highlights yourself
+  they are left untouched.
 * finally you can pass in a custom list containing 2 characters which will be
   used as the separators e.g. `{"|", "|"}`, the first is the left and the
   second is the right separator
+
+NOTE: the styles which draw a separator on both sides of every buffer i.e.
+`slant`, `padded_slant`, `slope`, `padded_slope` and `rounded` always render
+both separators and do not render the icon indicator as the separator already
+marks the position of the current buffer.
 
 ==============================================================================
 STYLE PRESETS                                        *bufferline-style-presets*
